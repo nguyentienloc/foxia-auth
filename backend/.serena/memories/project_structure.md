@@ -1,0 +1,6 @@
+- `apps/identity-service`: Main NestJS app (controllers, modules, entities, migrations, filters). Entry via `src/main.ts`, config in `app.module.ts`. Auth-specific logic under `src/modules/auth`.
+- `core/`: Shared library consumed by apps. Contains `auth` (base auth module, guards, strategies, services), `decorators`, `entities`, `enums`, `extensions`, `interceptors`, `utils`, telemetry, RabbitMQ helpers, etc.
+- `dist/`: Compiled output per app (`dist/apps/identity-service/...`) plus shared compiled modules.
+- `bin/`, `scripts/`: Deployment helpers (docker push, proto generation).
+- Root configs: `nest-cli.json`, `tsconfig*.json`, `docker-compose.yml`, `package.json`, `README.md`.
+- `.env` per app under `apps/<service>/.env*` describing DB/Redis/RabbitMQ credentials.

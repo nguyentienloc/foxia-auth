@@ -1,0 +1,32 @@
+export enum AdvancedFilterOperator {
+    CONTAIN = 'contain',
+    CONTAIN_START = 'contain_start',
+    CONTAIN_END = 'contain_end',
+    NOT_CONTAIN = 'not_contain',
+    NOT_CONTAIN_START = 'not_contain_start',
+    NOT_CONTAIN_END = 'not_contain_end',
+    EQUAL_TO = 'equal_to',
+    NOT_EQUAL_TO = 'not_equal_to',
+    IS_BIGGER_THAN = 'is_bigger_than',
+    IS_BIGGER_THAN_EQUAL_TO = 'is_bigger_than_equal_to',
+    IS_SMALLER_THAN = 'is_smaller_than',
+    IS_SMALLER_THAN_EQUAL_TO = 'is_smaller_than_equal_to',
+    BETWEEN = 'between',
+    NOT_BETWEEN = 'not_between',
+    DATETIME_BETWEEN = 'datetime_between',
+    DATETIME_NOT_BETWEEN = 'datetime_not_between',
+    IN = 'in',
+    NOT_IN = 'not_in',
+    IS_NULL = 'is_null',
+    IS_NOT_NULL = 'is_not_null',
+    IN_ANY = 'in_any',
+    NOT_IN_ANY = 'not_in_any',
+    EQUAL_TO_ARRAY = 'equal_to_array',
+    NOT_EQUAL_TO_ARRAY = 'not_equal_to_array',
+    MPATH_IN = 'mpath_in',
+}
+
+export enum AdvancedFilterType {
+    AND = 'and',
+    OR = 'or',
+}

@@ -1,0 +1,17 @@
+export enum ShowcasePermission {
+  createShowcase = 1 << 0,
+  fetchOneShowcase = 1 << 1,
+  editShowcase = 1 << 2,
+  updateStatusShowcase = 1 << 3,
+  createShowcaseRegister = 1 << 4,
+  fetchOneShowcaseRegister = 1 << 5,
+  editShowcaseRegister = 1 << 6,
+  updateStatusShowcaseRegister = 1 << 7,
+  createShowcaseEvaluation = 1 << 8,
+  fetchOneShowcaseEvaluation = 1 << 9,
+  editShowcaseEvaluation = 1 << 10,
+  updateStatusShowcaseEvaluation = 1 << 11,
+  fetchManyShowcase = 1 << 12,
+  fetchManyShowcaseRegister = 1 << 13,
+  fetchManyShowcaseEvaluation = 1 << 14,
+}

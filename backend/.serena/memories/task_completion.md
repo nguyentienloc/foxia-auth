@@ -1,0 +1,7 @@
+- Before handing off changes, run the relevant quality gates:
+  - `yarn lint` to auto-fix ESLint violations.
+  - `yarn test` (or `yarn test:e2e`) when modifying logic with coverage expectations.
+  - `yarn build identity-service` if the change affects build output or migrations.
+- Ensure `.env` settings for `apps/identity-service` are aligned (DATABASE, REDIS, RabbitMQ) when testing locally.
+- Update documentation (e.g., API contract for FE) whenever auth flows or shared modules change.
+- Verify Docker/Nest start scripts if infrastructure changes: `yarn start:identity:dev` (which runs migrations build first).

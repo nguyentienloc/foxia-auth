@@ -1,0 +1,373 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color: #111827;
+  background-color: #f4f6fb;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  background-color: #f4f6fb;
+}
+
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-shell__header {
+  padding: 1rem 2rem;
+  background-color: #111827;
+  color: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.app-shell__brand {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.app-shell__nav {
+  display: flex;
+  gap: 1rem;
+}
+
+.app-shell__nav a {
+  color: #e5e7eb;
+  text-decoration: none;
+  font-size: 0.95rem;
+}
+
+.app-shell__nav a.active {
+  color: #38bdf8;
+}
+
+.app-shell__main {
+  flex: 1;
+  padding: 2rem;
+}
+
+.page-card {
+  max-width: 480px;
+  margin: 0 auto;
+  background-color: #ffffff;
+  border-radius: 1rem;
+  padding: 2rem;
+  box-shadow: 0 15px 60px rgba(15, 23, 42, 0.08);
+}
+
+.page-card h1 {
+  margin-top: 0;
+}
+
+.flow-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.flow-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.flow-field input {
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  font-size: 1rem;
+}
+
+.flow-field--checkbox {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.flow-messages {
+  list-style: none;
+  padding: 0;
+  margin: 0.25rem 0 0;
+}
+
+.flow-messages li {
+  font-size: 0.9rem;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.flow-message--error {
+  color: #dc2626;
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+}
+
+.flow-message--info {
+  color: #1e40af;
+  background-color: #eff6ff;
+  border: 1px solid #bfdbfe;
+}
+
+.flow-message--success {
+  color: #166534;
+  background-color: #f0fdf4;
+  border: 1px solid #bbf7d0;
+}
+
+.flow-message--default {
+  color: #6b7280;
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+}
+
+.flow-text {
+  color: #6b7280;
+  font-size: 0.95rem;
+}
+
+.flow-submit {
+  background: #111827;
+  border: none;
+  border-radius: 0.75rem;
+  padding: 0.85rem;
+  font-weight: 600;
+  color: #ffffff;
+  cursor: pointer;
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+.flow-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.flow-submit[value='previous'],
+.flow-submit[name='screen'] {
+  background: #f3f4f6;
+  color: #111827;
+  border: 1px solid #d1d5db;
+}
+
+.flow-submit[value='previous']:hover,
+.flow-submit[name='screen']:hover {
+  background: #e5e7eb;
+}
+
+.json-viewer {
+  background: #0f172a;
+  color: #e2e8f0;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  overflow: auto;
+  font-size: 0.9rem;
+}
+
+/* Profile Page Styles */
+.profile-section {
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.profile-section:last-of-type {
+  border-bottom: none;
+  margin-bottom: 1.5rem;
+}
+
+.profile-section h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #111827;
+}
+
+.profile-field {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1rem;
+  gap: 1rem;
+}
+
+.profile-field label {
+  font-weight: 500;
+  color: #4b5563;
+  min-width: 150px;
+}
+
+.profile-field span {
+  color: #111827;
+}
+
+.profile-value--mono {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.9rem;
+  background: #f3f4f6;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+}
+
+.profile-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.profile-badge--active {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.profile-badge--inactive {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.profile-badge--verified {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.profile-badge--unverified {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.profile-badge--active-state {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.profile-details {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.profile-details summary {
+  cursor: pointer;
+  font-weight: 500;
+  color: #4b5563;
+  margin-bottom: 1rem;
+  user-select: none;
+}
+
+.profile-details summary:hover {
+  color: #111827;
+}
+
+.profile-actions {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.flow-submit--danger {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.flow-submit--danger:hover {
+  background: #b91c1c;
+}
+
+.flow-submit--danger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: #ffffff;
+  border-radius: 0.75rem;
+  padding: 2rem;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.modal-content h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.modal-content p {
+  margin: 0 0 1.5rem 0;
+  color: #4b5563;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+}
+
+.modal-actions .flow-submit {
+  flex: 1;
+  margin: 0;
+}
+
+/* Auth Switch Styles */
+.auth-switch {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e5e7eb;
+  text-align: center;
+}
+
+.auth-switch p {
+  margin: 0;
+  color: #4b5563;
+}
+
+.auth-switch__link {
+  background: none;
+  border: none;
+  color: #2563eb;
+  cursor: pointer;
+  text-decoration: underline;
+  font-size: inherit;
+  padding: 0;
+  margin: 0;
+}
+
+.auth-switch__link:hover {
+  color: #1d4ed8;
+}
+

@@ -1,0 +1,3 @@
+- **Language**: TypeScript with NestJS decorators (modules, controllers, injectable services). Keep files in `apps/<service>/src/**` or shared `core/**`.
+- **Linting/formatting**: Use ESLint (`yarn lint`) targeting `{src,apps,libs,test}/**/*.ts` and Prettier (`yarn format`) on `apps/**/*.ts` and `libs/**/*.ts`. Follow NestJS style (DI via constructors, providers registered in modules, DTOs with `class-validator`/`class-transformer`).
+- **Naming/layout**: Modules under `modules/*`, controllers in `controllers`, services in `services`, DTOs in `dtos`. Shared utilities live under `core/` following functional separation (auth, decorators, enums, utils, etc.). Prefer descriptive file names (e.g., `*.module.ts`, `*.controller.ts`).

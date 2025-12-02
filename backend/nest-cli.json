@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json.schemastore.org/nest-cli",
+  "collection": "@nestjs/schematics",
+  "sourceRoot": "apps/identity-service/src",
+  "compilerOptions": {
+    "deleteOutDir": false,
+    "webpack": false,
+    "tsConfigPath": "apps/identity-service/tsconfig.app.json"
+  },
+  "monorepo": true,
+  "root": "apps/identity-service",
+  "projects": {
+    "identity-service": {
+      "type": "application",
+      "root": "apps/identity-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/identity-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/identity-service/tsconfig.app.json",
+        "assets": [
+          {
+            "watchAssets": true,
+            "include": "**/protos/**/*",
+            "outDir": "dist/apps/identity-service/src"
+          }
+        ]
+      }
+    },
+    "file-service": {
+      "type": "application",
+      "root": "apps/file-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/file-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/file-service/tsconfig.app.json"
+      }
+    },
+    "customer-service": {
+      "type": "application",
+      "root": "apps/customer-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/customer-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/customer-service/tsconfig.app.json"
+      }
+    }
+  }
+}

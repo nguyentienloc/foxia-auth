@@ -1,0 +1,12 @@
+- Install deps: `yarn install`
+- Start default Nest app: `yarn start`
+- Start identity-service in watch mode (after copying protos): `yarn start:identity:dev`
+- Standard dev server: `yarn start:dev`
+- Build: `yarn build`
+- Lint/format: `yarn lint`, `yarn format`
+- Tests: `yarn test`, `yarn test:watch`, `yarn test:cov`, `yarn test:e2e`
+- Database migrations (identity-service):
+  - Generate: `yarn migration:identity:generate`
+  - Run: `yarn migration:identity:run`
+  - Revert: `yarn migration:identity:revert`
+- Clean build artifacts: `yarn prebuild` (via `rimraf dist`)
