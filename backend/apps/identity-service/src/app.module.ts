@@ -7,7 +7,7 @@ import { identityConnection } from 'core/constants/database-connection.constant'
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './modules/auth/auth.module';
-import { RabbitMQModule } from '@golevelup/nestjs-rabbitmq';
+import { RabbitMQModule } from 'core/rabbitmq';
 import { getRmqHost } from 'core/utils';
 
 @Module({

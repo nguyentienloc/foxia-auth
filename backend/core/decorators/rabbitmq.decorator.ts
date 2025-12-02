@@ -1,4 +1,4 @@
-import { RabbitRPC, RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
+import { RabbitRPC, RabbitSubscribe } from 'core/rabbitmq';
 import { RabbitHandlerConfig } from '@golevelup/nestjs-rabbitmq/lib/rabbitmq.interfaces';
 import { IdentityExchange } from 'core/interfaces/rmq-exchanges.interface';
 

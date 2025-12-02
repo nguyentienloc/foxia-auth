@@ -3,6 +3,15 @@ import react from "@vitejs/plugin-react";
 import path from "path";
 import { defineConfig, loadEnv } from "vite";
 
+function safeLoadEnv(mode: string) {
+  try {
+    return loadEnv(mode, process.cwd(), "");
+  } catch (error) {
+    console.warn("[vite.config] Unable to read .env file, falling back to defaults.", error);
+    return {};
+  }
+}
+
 function getEnvVariables(mode: string) {
   const ENVS = {
     production: {
@@ -13,7 +22,7 @@ function getEnvVariables(mode: string) {
 }
 
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), "");
+  const env = safeLoadEnv(mode);
   return {
     plugins: [react()],
     resolve: {

@@ -1,19 +1,19 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate } from '@tanstack/react-router';
-import { FlowRenderer } from '../../components/flow/FlowRenderer';
-import { KratosFlow, UiText } from '../../types/kratos';
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
+import { FlowRenderer } from "../../components/flow/FlowRenderer";
+import { KratosFlow, UiText } from "../../types/kratos";
 import {
   useCreateLoginFlow,
   useSessionQuery,
   useSubmitLoginFlow,
-} from '../../queries/auth.query';
+} from "../../queries/auth.query";
 import {
   extractFlowFromError,
   extractErrorMessage,
   isCsrfError,
   clearCookies,
-} from '../../utils/kratos';
-import { FlowMessages } from '../../components/flow/FlowMessages';
+} from "../../utils/kratos";
+import { FlowMessages } from "../../components/flow/FlowMessages";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -35,7 +35,7 @@ export default function LoginPage() {
     } catch (error) {
       const messages = extractErrorMessage(error);
       setErrorMessages(messages);
-      console.error('Error creating login flow:', error);
+      console.error("Error creating login flow:", error);
     }
   }, [createFlowMutation]);
 
@@ -52,12 +52,11 @@ export default function LoginPage() {
   const handleSubmit = async (payload: Record<string, string | boolean>) => {
     if (!flow) return;
 
-    // Check if CSRF token is present
     if (!payload.csrf_token) {
       setErrorMessages([
         {
-          text: 'CSRF token không tìm thấy. Vui lòng tải lại trang và thử lại.',
-          type: 'error',
+          text: "CSRF token không tìm thấy. Vui lòng tải lại trang và thử lại.",
+          type: "error",
         },
       ]);
       return;
@@ -70,80 +69,56 @@ export default function LoginPage() {
         payload,
       });
 
-      console.log('Submit login response:', response);
-
-      // Extract flow from response (could be direct flow object or wrapped in 'data')
       let flowData: KratosFlow | undefined;
       if (
         response &&
-        typeof response === 'object' &&
-        'data' in response &&
+        typeof response === "object" &&
+        "data" in response &&
         response.data &&
-        typeof response.data === 'object' &&
-        'id' in response.data &&
-        'ui' in response.data
+        typeof response.data === "object" &&
+        "id" in response.data &&
+        "ui" in response.data
       ) {
-        // Response is wrapped: { data: { id, ui, ... } }
         flowData = response.data as KratosFlow;
       } else if (
         response &&
-        typeof response === 'object' &&
-        'id' in response &&
-        'ui' in response
+        typeof response === "object" &&
+        "id" in response &&
+        "ui" in response
       ) {
-        // Response is direct flow object
         flowData = response as KratosFlow;
       }
 
-      // Check if response is a flow continuation (multi-step flow)
       if (flowData) {
-        console.log('Flow detected:', {
-          id: flowData.id,
-          state: flowData.state,
-          hasNodes: !!flowData.ui?.nodes?.length,
-          nodesCount: flowData.ui?.nodes?.length,
-        });
-
-        // A flow is considered "in progress" if:
-        // 1. It has a state that is not 'success' (e.g., 'choose_method')
-        // 2. OR it has ui.nodes (meaning there are still form fields to fill)
         const isInProgress =
-          (flowData.state && flowData.state !== 'success') ||
+          (flowData.state && flowData.state !== "success") ||
           (flowData.ui?.nodes && flowData.ui.nodes.length > 0);
 
         if (isInProgress) {
-          console.log('Flow continuation detected, updating flow');
           setFlow(flowData);
           return;
         }
       }
 
-      console.log('Flow completed, navigating to /me');
-      // Flow completed successfully, check session and navigate
       await sessionQuery.refetch();
-      navigate({ to: '/me' });
+      navigate({ to: "/me" });
     } catch (error) {
-      console.error('Submit login error:', error);
+      console.error("Submit login error:", error);
 
-      // Handle CSRF error - clear cookies and recreate flow
       if (isCsrfError(error)) {
         setErrorMessages([
           {
-            text: 'Lỗi bảo mật CSRF. Đang xóa cookies và tạo lại flow...',
-            type: 'error',
+            text: "Lỗi bảo mật CSRF. Đang xóa cookies và tạo lại flow...",
+            type: "error",
           },
         ]);
-        // Clear cookies to start fresh
         clearCookies();
-        // Reset and recreate flow
         hasInitialized.current = false;
-        // Wait a bit for cookies to be cleared
         await new Promise((resolve) => setTimeout(resolve, 100));
         await initializeFlow();
         return;
       }
 
-      // Try to extract flow from error (for validation errors)
       const retryFlow = extractFlowFromError(error);
       if (retryFlow) {
         setFlow(retryFlow);
@@ -151,35 +126,137 @@ export default function LoginPage() {
         return;
       }
 
-      // Extract and display error message
       const errorMessages = extractErrorMessage(error);
       setErrorMessages(errorMessages);
     }
   };
 
   return (
-    <section className="page-card">
-      <h1>Đăng nhập</h1>
-      <FlowMessages messages={errorMessages} />
-      {flow ? (
-        <>
-          <FlowRenderer flow={flow} onSubmit={handleSubmit} />
-        </>
-      ) : (
-        <p>Đang khởi tạo flow...</p>
-      )}
-      <div className="auth-switch">
-        <p>
-          Chưa có tài khoản?{' '}
-          <button
-            type="button"
-            className="auth-switch__link"
-            onClick={() => navigate({ to: '/registration' })}
-          >
-            Đăng ký ngay
-          </button>
-        </p>
+    <div className="min-h-screen bg-foxia-50 text-slate-800 flex items-center justify-center px-4 py-8">
+      <div className="w-full max-w-6xl bg-slate-900/90 rounded-3xl shadow-2xl overflow-hidden flex flex-col lg:flex-row">
+        {/* Left visual panel */}
+        <div className="hidden lg:flex lg:w-1/2 bg-slate-900 relative overflow-hidden items-center justify-center">
+          <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1556761175-5973dc0f32e7?auto=format&fit=crop&w=1950&q=80')] bg-cover bg-center opacity-40" />
+          <div className="absolute inset-0 bg-gradient-to-tr from-foxia-600/90 to-purple-900/80 mix-blend-multiply" />
+
+          <div className="relative z-10 p-12 text-white max-w-lg space-y-6">
+            <div className="flex items-center gap-3 mb-4">
+              <svg
+                className="w-10 h-10 text-white"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M12 2L3 8.5L12 22L21 8.5L12 2Z"
+                  fill="currentColor"
+                  className="opacity-90"
+                />
+                <path
+                  d="M12 22L12 11.5M12 11.5L2 8.5M12 11.5L22 8.5"
+                  stroke="white"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              <span className="text-3xl font-bold tracking-tight">FOXIA</span>
+            </div>
+            <blockquote className="text-2xl font-light italic leading-relaxed">
+              “Foxia helped us scale our operations by 300% in just six months.
+              The most intuitive SaaS for business owners.”
+            </blockquote>
+            <div className="flex items-center gap-4 mt-6">
+              <img
+                src="https://randomuser.me/api/portraits/women/44.jpg"
+                alt="User"
+                className="w-12 h-12 rounded-full border-2 border-foxia-300"
+              />
+              <div>
+                <p className="font-semibold">Sarah Jenkins</p>
+                <p className="text-sm text-foxia-100">CEO, Sparkle Creative</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Right form panel */}
+        <div className="w-full lg:w-1/2 bg-white flex items-center justify-center p-6 lg:p-12 overflow-y-auto">
+          <div className="w-full max-w-md space-y-8 animate-slide-up">
+            <div className="text-center lg:text-left space-y-2">
+              <h2 className="text-3xl font-bold text-slate-900">
+                Welcome back
+              </h2>
+              <p className="text-slate-500">
+                Please enter your details to sign in.
+              </p>
+            </div>
+
+            {/* Social login buttons */}
+            <div className="grid grid-cols-2 gap-4">
+              <button
+                type="button"
+                className="flex items-center justify-center gap-2 px-4 py-2.5 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors"
+              >
+                <img
+                  src="https://www.svgrepo.com/show/475656/google-color.svg"
+                  className="w-5 h-5"
+                  alt="Google"
+                />
+                <span className="text-sm font-medium text-slate-700">
+                  Google
+                </span>
+              </button>
+              <button
+                type="button"
+                className="flex items-center justify-center gap-2 px-4 py-2.5 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors"
+              >
+                <img
+                  src="https://www.svgrepo.com/show/448234/microsoft.svg"
+                  className="w-5 h-5"
+                  alt="Microsoft"
+                />
+                <span className="text-sm font-medium text-slate-700">
+                  Microsoft
+                </span>
+              </button>
+            </div>
+
+            {/* Divider */}
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-slate-200" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase tracking-wide">
+                <span className="px-3 bg-white text-slate-400">
+                  or continue with email
+                </span>
+              </div>
+            </div>
+
+            <FlowMessages messages={errorMessages} />
+
+            <div className="space-y-4">
+              {flow ? (
+                <FlowRenderer flow={flow} onSubmit={handleSubmit} />
+              ) : (
+                <p className="text-sm text-slate-500">Đang khởi tạo flow...</p>
+              )}
+            </div>
+
+            <p className="text-center text-sm text-slate-500">
+              Don&apos;t have an account?{" "}
+              <button
+                type="button"
+                className="font-semibold text-foxia-600 hover:text-foxia-500 underline underline-offset-2"
+                onClick={() => navigate({ to: "/registration" })}
+              >
+                Create free account
+              </button>
+            </p>
+          </div>
+        </div>
       </div>
-    </section>
+    </div>
   );
 }
