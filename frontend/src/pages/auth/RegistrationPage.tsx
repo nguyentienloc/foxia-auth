@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import { message } from "antd";
 import { FlowRenderer } from "../../components/flow/FlowRenderer";
 import { FlowMessages } from "../../components/flow/FlowMessages";
@@ -17,9 +17,11 @@ import {
   isCsrfError,
   clearCookies,
 } from "../../utils/kratos";
+import { useSessionStore } from "../../stores/session.store";
 
 export default function RegistrationPage() {
   const navigate = useNavigate();
+  const search = useSearch({ from: "/registration" }) as { flow?: string };
   const [messageApi, contextHolder] = message.useMessage();
   const [flow, setFlow] = useState<KratosFlow | null>(null);
   const [errorMessages, setErrorMessages] = useState<UiText[]>([]);
@@ -28,10 +30,36 @@ export default function RegistrationPage() {
   const submitFlowMutation = useSubmitRegistrationFlow();
   const createLoginFlowMutation = useCreateLoginFlow();
   const submitLoginFlowMutation = useSubmitLoginFlow();
-  const sessionQuery = useSessionQuery(false);
+  const sessionQuery = useSessionQuery(true);
+  const session = useSessionStore((state) => state.session);
   const hasInitialized = useRef(false);
 
   const initializeFlow = useCallback(async () => {
+    // If flow ID is in URL (from OIDC redirect), get that flow instead of creating new one
+    if (search.flow) {
+      setErrorMessages([]);
+      try {
+        // Get existing flow from backend by calling API with flow ID in query params
+        const baseUrl =
+          (import.meta as any).env?.VITE_IDENTITY_API_URL ??
+          (import.meta as any).env?.VITE_API_BASE_URL ??
+          "http://localhost:3000";
+        const flowResponse = await fetch(
+          `${baseUrl}/auth/registration/browser?flow=${search.flow}`,
+          {
+            credentials: "include",
+          }
+        );
+        const flowData = await flowResponse.json();
+        setFlow(flowData.data as KratosFlow);
+        return;
+      } catch (error) {
+        console.error("Error getting registration flow from URL:", error);
+        // Fall through to create new flow
+      }
+    }
+
+    // Create new flow if no flow ID in URL
     if (createFlowMutation.isPending) {
       return;
     }
@@ -43,7 +71,19 @@ export default function RegistrationPage() {
       const messages = extractErrorMessage(error);
       setErrorMessages(messages);
     }
-  }, [createFlowMutation]);
+  }, [createFlowMutation, search.flow]);
+
+  useEffect(() => {
+    if (sessionQuery.data?.session) {
+      navigate({ to: "/" });
+    }
+  }, [sessionQuery.data, navigate]);
+
+  useEffect(() => {
+    if (session) {
+      navigate({ to: "/" });
+    }
+  }, [session, navigate]);
 
   useEffect(() => {
     if (hasInitialized.current) {
@@ -91,7 +131,7 @@ export default function RegistrationPage() {
         });
 
         await sessionQuery.refetch();
-        navigate({ to: "/me" });
+        navigate({ to: "/" });
       } catch (error) {
         console.error("Auto login after registration failed:", error);
         messageApi.error(

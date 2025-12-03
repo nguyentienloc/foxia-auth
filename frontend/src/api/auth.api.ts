@@ -78,11 +78,13 @@ class ApiAuth extends Api {
     });
     return response;
   };
-}
 
+  getErrorFlow = async (errorId: string) => {
+    const response = await this.GET('/auth/error', { id: errorId });
+    return response;
+  };
+}
 const baseURL =
-  import.meta.env.VITE_IDENTITY_API_URL ??
-  import.meta.env.VITE_API_BASE_URL ??
-  'http://localhost:3000';
+  (import.meta as any).env?.VITE_IDENTITY_API_URL ?? "/api";
 
 export default new ApiAuth(baseURL);

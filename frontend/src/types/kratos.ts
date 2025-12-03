@@ -21,7 +21,7 @@ export type UiNodeAttributes = {
 
 export type UiNode = {
   id?: string;
-  type: 'input' | 'text' | 'img' | 'button';
+  type: 'input' | 'text' | 'img' | 'button' | 'a';
   group?: string;
   attributes: UiNodeAttributes;
   meta?: {

@@ -27,9 +27,11 @@ export function useSessionQuery(enabled = true) {
 
   useEffect(() => {
     if (query.data) {
+      // Unwrap response if it's wrapped in 'data' property (from TransformInterceptor)
+      const responseData = (query.data as any)?.data || query.data;
       setSession({
-        identity: query.data.identity,
-        session: query.data.session,
+        identity: responseData?.identity,
+        session: responseData?.session,
       });
     }
   }, [query.data, setSession]);

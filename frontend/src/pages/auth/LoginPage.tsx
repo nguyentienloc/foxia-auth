@@ -14,6 +14,7 @@ import {
   clearCookies,
 } from "../../utils/kratos";
 import { FlowMessages } from "../../components/flow/FlowMessages";
+import { useSessionStore } from "../../stores/session.store";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -21,7 +22,8 @@ export default function LoginPage() {
   const [errorMessages, setErrorMessages] = useState<UiText[]>([]);
   const createFlowMutation = useCreateLoginFlow();
   const submitFlowMutation = useSubmitLoginFlow();
-  const sessionQuery = useSessionQuery(false);
+  const sessionQuery = useSessionQuery(true);
+  const session = useSessionStore((state) => state.session);
   const hasInitialized = useRef(false);
 
   const initializeFlow = useCallback(async () => {
@@ -38,6 +40,18 @@ export default function LoginPage() {
       console.error("Error creating login flow:", error);
     }
   }, [createFlowMutation]);
+
+  useEffect(() => {
+    if (sessionQuery.data?.session) {
+      navigate({ to: "/" });
+    }
+  }, [sessionQuery.data, navigate]);
+
+  useEffect(() => {
+    if (session) {
+      navigate({ to: "/" });
+    }
+  }, [session, navigate]);
 
   useEffect(() => {
     if (hasInitialized.current) {
@@ -101,7 +115,7 @@ export default function LoginPage() {
       }
 
       await sessionQuery.refetch();
-      navigate({ to: "/me" });
+      navigate({ to: "/" });
     } catch (error) {
       console.error("Submit login error:", error);
 
@@ -192,48 +206,6 @@ export default function LoginPage() {
               </p>
             </div>
 
-            {/* Social login buttons */}
-            <div className="grid grid-cols-2 gap-4">
-              <button
-                type="button"
-                className="flex items-center justify-center gap-2 px-4 py-2.5 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors"
-              >
-                <img
-                  src="https://www.svgrepo.com/show/475656/google-color.svg"
-                  className="w-5 h-5"
-                  alt="Google"
-                />
-                <span className="text-sm font-medium text-slate-700">
-                  Google
-                </span>
-              </button>
-              <button
-                type="button"
-                className="flex items-center justify-center gap-2 px-4 py-2.5 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors"
-              >
-                <img
-                  src="https://www.svgrepo.com/show/448234/microsoft.svg"
-                  className="w-5 h-5"
-                  alt="Microsoft"
-                />
-                <span className="text-sm font-medium text-slate-700">
-                  Microsoft
-                </span>
-              </button>
-            </div>
-
-            {/* Divider */}
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-slate-200" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase tracking-wide">
-                <span className="px-3 bg-white text-slate-400">
-                  or continue with email
-                </span>
-              </div>
-            </div>
-
             <FlowMessages messages={errorMessages} />
 
             <div className="space-y-4">
@@ -249,7 +221,12 @@ export default function LoginPage() {
               <button
                 type="button"
                 className="font-semibold text-foxia-600 hover:text-foxia-500 underline underline-offset-2"
-                onClick={() => navigate({ to: "/registration" })}
+                onClick={() =>
+                  navigate({
+                    to: "/registration",
+                    search: { flow: undefined },
+                  })
+                }
               >
                 Create free account
               </button>

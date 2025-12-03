@@ -4,13 +4,15 @@ import { KratosFlow, UiNode } from "../../types/kratos";
 
 type Props = {
   flow: KratosFlow;
-  onSubmit: (payload: Record<string, string | boolean>) => void;
+  onSubmit: (payload: Record<string, string | boolean>) => void | Promise<void>;
   showPasswordStrength?: boolean;
 };
 
 type FormState = Record<string, string | boolean>;
 
 export function FlowRenderer({ flow, onSubmit, showPasswordStrength }: Props) {
+  // Store flow ID for OIDC submission
+  const flowId = flow.id;
   const defaultValues = useMemo(() => buildDefaultState(flow.ui.nodes), [flow]);
   const [formState, setFormState] = useState<FormState>(defaultValues);
   const [passwordVisibility, setPasswordVisibility] = useState<
@@ -76,6 +78,46 @@ export function FlowRenderer({ flow, onSubmit, showPasswordStrength }: Props) {
     }));
   };
 
+  // Separate OIDC nodes from form nodes
+  // OIDC nodes can have: group === "oidc", type === "a" with href, or type === "button" with group "oidc"
+  const oidcNodes = flow.ui.nodes.filter((node) => {
+    const isOidc =
+      node.group === "oidc" ||
+      (node.type === "a" && node.attributes.href) ||
+      (node.type === "button" && node.group === "oidc") ||
+      (node.attributes.name && node.attributes.name.startsWith("provider_"));
+
+    // Debug logging (only in development)
+    if (isOidc) {
+      console.log("OIDC node detected:", {
+        id: node.id,
+        type: node.type,
+        group: node.group,
+        name: node.attributes.name,
+        href: node.attributes.href,
+        attributes: node.attributes,
+      });
+    }
+
+    return isOidc;
+  });
+
+  // Debug: log all nodes to see structure if no OIDC nodes found
+  if (oidcNodes.length === 0) {
+    console.log(
+      "No OIDC nodes found. All nodes:",
+      flow.ui.nodes.map((node) => ({
+        id: node.id,
+        type: node.type,
+        group: node.group,
+        name: node.attributes.name,
+        href: node.attributes.href,
+      }))
+    );
+  }
+
+  const formNodes = flow.ui.nodes.filter((node) => !oidcNodes.includes(node));
+
   return (
     <form
       className="flex flex-col gap-4"
@@ -84,7 +126,50 @@ export function FlowRenderer({ flow, onSubmit, showPasswordStrength }: Props) {
       method={flow.ui.method}
     >
       <FlowMessages messages={flow.ui.messages} />
-      {flow.ui.nodes.map((node) => (
+
+      {/* Render OIDC providers in a grid if they exist */}
+      {oidcNodes.length > 0 && (
+        <>
+          <div className="grid grid-cols-2 gap-4">
+            {oidcNodes.map((node, index) => {
+              const nodeKey =
+                node.id ??
+                node.attributes.name ??
+                (node.attributes.id as string | undefined) ??
+                `oidc-${index}`;
+              return (
+                <FlowNode
+                  key={nodeKey}
+                  node={node}
+                  value={formState[node.attributes.name ?? ""] ?? ""}
+                  onChange={handleChange}
+                  isPasswordVisible={false}
+                  onTogglePassword={() => {}}
+                  showPasswordStrength={false}
+                  flowId={flowId}
+                />
+              );
+            })}
+          </div>
+
+          {/* Divider if there are form fields */}
+          {formNodes.length > 0 && (
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-slate-200" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase tracking-wide">
+                <span className="px-3 bg-white text-slate-400">
+                  or continue with email
+                </span>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Render form nodes */}
+      {formNodes.map((node) => (
         <FlowNode
           key={node.id ?? node.attributes.name}
           node={node}
@@ -97,6 +182,7 @@ export function FlowRenderer({ flow, onSubmit, showPasswordStrength }: Props) {
           }
           onTogglePassword={togglePasswordVisibility}
           showPasswordStrength={showPasswordStrength ?? false}
+          flowId={flowId}
         />
       ))}
     </form>
@@ -110,6 +196,7 @@ type FlowNodeProps = {
   isPasswordVisible: boolean;
   onTogglePassword: (field: string) => void;
   showPasswordStrength: boolean;
+  flowId: string;
 };
 
 function FlowNode({
@@ -119,7 +206,216 @@ function FlowNode({
   isPasswordVisible,
   onTogglePassword,
   showPasswordStrength,
+  flowId,
 }: FlowNodeProps) {
+  // Handle OIDC provider buttons/links (check before name check since OIDC nodes might not have name)
+  // OIDC nodes can be: type "a" with href, type "button" with group "oidc", or any node with group "oidc"
+  const isOidcNode =
+    node.group === "oidc" ||
+    (node.type === "a" && node.attributes.href) ||
+    (node.type === "button" && node.group === "oidc") ||
+    (node.attributes.name && node.attributes.name.startsWith("provider_"));
+
+  if (isOidcNode) {
+    // Try to get href from various sources
+    // For input type nodes, the URL might be in value or we need to construct it
+    const href =
+      (node.attributes.href as string | undefined) ||
+      (node.attributes.value as string | undefined)?.match(
+        /https?:\/\/[^\s"']+/
+      )?.[0] ||
+      (typeof node.attributes.onclick === "string"
+        ? node.attributes.onclick.match(/href=["']([^"']+)["']/)?.[1] ||
+          node.attributes.onclick.match(/(https?:\/\/[^\s"']+)/)?.[1]
+        : undefined);
+
+    const providerId = (() => {
+      if (node.attributes.name && typeof node.attributes.name === "string") {
+        const name = node.attributes.name
+          .replace("provider_", "")
+          .replace("provider", "");
+        if (name) return name;
+      }
+      if (node.attributes.id && typeof node.attributes.id === "string") {
+        const id = node.attributes.id
+          .replace("provider_", "")
+          .replace("provider", "");
+        if (id) return id;
+      }
+      if (node.attributes.value && typeof node.attributes.value === "string") {
+        // If value is a URL, try to extract provider from it
+        const urlMatch = node.attributes.value.match(/provider[=:]([^&\s]+)/i);
+        if (urlMatch) return urlMatch[1];
+        // Otherwise try to extract from the value itself
+        const value = node.attributes.value
+          .replace("provider_", "")
+          .replace("provider", "");
+        if (value && !value.startsWith("http")) return value;
+      }
+      // Default to "google" if name is "provider" (common case)
+      if (node.attributes.name === "provider") {
+        return "google";
+      }
+      return "";
+    })();
+
+    const label =
+      node.meta?.label?.text ??
+      node.attributes.label?.text ??
+      (providerId
+        ? providerId.charAt(0).toUpperCase() + providerId.slice(1)
+        : "Social Login");
+
+    // Get provider icon
+    const getProviderIcon = (provider: string) => {
+      const normalizedProvider = provider.toLowerCase();
+      if (normalizedProvider.includes("google")) {
+        return "https://www.svgrepo.com/show/475656/google-color.svg";
+      }
+      if (normalizedProvider.includes("microsoft")) {
+        return "https://www.svgrepo.com/show/448234/microsoft.svg";
+      }
+      if (normalizedProvider.includes("github")) {
+        return "https://www.svgrepo.com/show/512317/github-142.svg";
+      }
+      return null;
+    };
+
+    const iconUrl = getProviderIcon(providerId);
+
+    const handleOidcClick = (e: React.MouseEvent) => {
+      e.preventDefault();
+
+      // If we have a direct href URL, redirect immediately
+      if (href) {
+        console.log("Redirecting to OIDC provider:", href);
+        window.location.href = href;
+        return;
+      }
+
+      // For input type nodes with name "provider" and type "submit", submit form DIRECTLY to Kratos
+      // This is REQUIRED because:
+      // 1. Kratos only sets cookies when request comes directly from browser (not via backend proxy)
+      // 2. Cookie must be set with Kratos domain (auth.foxia.vn) so it's sent when Google redirects back
+      // 3. CSRF token from current flow is valid for Kratos endpoint
+      if (
+        node.type === "input" &&
+        node.attributes.name === "provider" &&
+        node.attributes.type === "submit"
+      ) {
+        const form = e.currentTarget.closest("form");
+        if (form) {
+          const csrfInput = form.querySelector(
+            'input[name="csrf_token"]'
+          ) as HTMLInputElement;
+          const providerValue =
+            (node.attributes.value as string | undefined) || providerId;
+
+          if (providerValue && csrfInput?.value && flowId) {
+            // Determine Kratos public URL from form action / flow action
+            const flowAction = (form as HTMLFormElement).action;
+            let kratosEndpoint: string;
+
+            const isDev =
+              (import.meta as any).env?.DEV ||
+              (import.meta as any).env?.MODE === "development";
+
+            if (flowAction) {
+              if (isDev && flowAction.includes("auth.foxia.vn")) {
+                kratosEndpoint = flowAction.replace(
+                  /https?:\/\/[^/]+/,
+                  "/kratos"
+                );
+              } else if (
+                isDev &&
+                !flowAction.includes("auth.foxia.vn") &&
+                !flowAction.startsWith("/kratos")
+              ) {
+                const pathMatch = flowAction.match(
+                  /\/(auth|self-service)\/([^?]+)(\?.*)?$/
+                );
+                if (pathMatch) {
+                  const path = pathMatch[2];
+                  const query = pathMatch[3] || "";
+                  kratosEndpoint = `/kratos/self-service/${path}${query}`;
+                } else {
+                  kratosEndpoint = `/kratos${flowAction.replace(
+                    /^https?:\/\/[^/]+/,
+                    ""
+                  )}`;
+                }
+              } else {
+                kratosEndpoint = flowAction;
+              }
+            } else {
+              if (isDev) {
+                kratosEndpoint = `/kratos/self-service/login?flow=${flowId}`;
+              } else {
+                const kratosPublicUrl =
+                  (import.meta as any).env?.VITE_KRATOS_PUBLIC_URL ??
+                  "https://auth.foxia.vn";
+                kratosEndpoint = `${kratosPublicUrl}/self-service/login?flow=${flowId}`;
+              }
+            }
+
+            console.log("Submitting OIDC form to Kratos:", {
+              originalFlowAction: flowAction,
+              kratosEndpoint,
+              flowId,
+              providerValue,
+              isDev,
+            });
+
+            // Use form submit instead of fetch to let browser handle redirect automatically
+            // This works better with Vite proxy and avoids CORS issues
+            const tempForm = document.createElement("form");
+            tempForm.method = "POST";
+            tempForm.action = kratosEndpoint;
+            tempForm.style.display = "none";
+
+            // Add provider field
+            const providerInput = document.createElement("input");
+            providerInput.type = "hidden";
+            providerInput.name = "provider";
+            providerInput.value = providerValue;
+            tempForm.appendChild(providerInput);
+
+            // Add CSRF token
+            const csrfInputClone = document.createElement("input");
+            csrfInputClone.type = "hidden";
+            csrfInputClone.name = "csrf_token";
+            csrfInputClone.value = csrfInput.value;
+            tempForm.appendChild(csrfInputClone);
+
+            // Append to body and submit
+            document.body.appendChild(tempForm);
+            console.log("Submitting form to:", kratosEndpoint);
+            tempForm.submit();
+            return;
+          }
+        }
+      }
+
+      console.warn("OIDC node clicked but unable to handle", {
+        node,
+        href,
+        providerId,
+        attributes: node.attributes,
+      });
+    };
+
+    return (
+      <button
+        type="button"
+        onClick={handleOidcClick}
+        className="flex items-center justify-center gap-2 px-4 py-2.5 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors w-full"
+      >
+        {iconUrl && <img src={iconUrl} className="w-5 h-5" alt={providerId} />}
+        <span className="text-sm font-medium text-slate-700">{label}</span>
+      </button>
+    );
+  }
+
   const name = node.attributes.name;
 
   if (!name) {
