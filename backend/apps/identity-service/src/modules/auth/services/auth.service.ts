@@ -5,7 +5,7 @@ import {
   UnauthorizedException,
   Inject,
 } from '@nestjs/common';
-import { AxiosRequestConfig, isAxiosError } from 'axios';
+import { AxiosRequestConfig, isAxiosError, default as axios } from 'axios';
 import {
   FrontendApi,
   LoginFlow,
@@ -72,18 +72,39 @@ export class AuthService {
         cookies: this.extractCookies(headers),
       };
     } catch (error) {
-      // Check if error response contains a flow (flow continuation)
+      // Check if error response contains redirect_browser_to (OIDC flow)
       if (isAxiosError(error)) {
-        const flowData = error.response?.data;
+        const errorData = error.response?.data;
+        
+        // Check for OIDC redirect
         if (
-          flowData &&
-          typeof flowData === 'object' &&
-          'id' in flowData &&
-          'ui' in flowData
+          errorData &&
+          typeof errorData === 'object' &&
+          'redirect_browser_to' in errorData
+        ) {
+          const cookies = this.extractCookies(error.response?.headers);
+          if (process.env.NODE_ENV === 'development') {
+            console.log('OIDC redirect detected, cookies:', cookies);
+          }
+          // Return redirect URL in a special format so controller can handle it
+          return {
+            data: {
+              redirect_browser_to: errorData.redirect_browser_to,
+            } as any,
+            cookies: cookies,
+          };
+        }
+        
+        // Check if error response contains a flow (flow continuation)
+        if (
+          errorData &&
+          typeof errorData === 'object' &&
+          'id' in errorData &&
+          'ui' in errorData
         ) {
           // This is a flow continuation, return it as success
           return {
-            data: flowData as unknown as LoginFlow,
+            data: errorData as unknown as LoginFlow,
             cookies: this.extractCookies(error.response?.headers),
           };
         }
@@ -204,9 +225,17 @@ export class AuthService {
   private extractCookies(headers?: unknown) {
     const raw = headers && (headers as any)['set-cookie'];
     if (!raw) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('No Set-Cookie header in Kratos response');
+        console.log('Response headers:', headers);
+      }
       return undefined;
     }
-    return Array.isArray(raw) ? raw : [raw];
+    const cookies = Array.isArray(raw) ? raw : [raw];
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Extracted cookies from Kratos:', cookies);
+    }
+    return cookies;
   }
 
   private toBrowserLoginParams(
@@ -235,6 +264,30 @@ export class AuthService {
     return {
       ...(query.returnTo ? { returnTo: query.returnTo } : {}),
     };
+  }
+
+  async getErrorFlow(errorId: string, cookie?: string): Promise<any> {
+    // Kratos error endpoint: GET /self-service/errors?id=<error_id>
+    // We need to call this directly via axios since FrontendApi might not have this method
+    const basePath = process.env.KRATOS_PUBLIC_URL;
+    if (!basePath) {
+      throw new Error('KRATOS_PUBLIC_URL is not defined');
+    }
+
+    const config: AxiosRequestConfig = {
+      method: 'GET',
+      url: `${basePath}/self-service/errors`,
+      params: { id: errorId },
+      headers: cookie ? { cookie } : {},
+      withCredentials: true,
+    };
+
+    try {
+      const response = await axios(config);
+      return response.data;
+    } catch (error) {
+      throw this.normalizeError(error);
+    }
   }
 
   private normalizeError(error: unknown) {

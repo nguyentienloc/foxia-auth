@@ -8,6 +8,7 @@ import {
   Req,
   Res,
   UseGuards,
+  BadRequestException,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response, Request } from 'express';
@@ -45,15 +46,40 @@ export class AuthController {
     @Query() query: FlowQueryDto,
     @Body() body: UpdateLoginFlowBody,
     @Req() req: Request,
-    @Res({ passthrough: true }) res: Response,
+    @Res({ passthrough: false }) res: Response,
   ) {
     const result = await this.authService.updateLoginFlow(
       query,
       body,
       req.headers.cookie,
     );
-    this.setResponseCookies(res, result.cookies);
-    return result.data;
+    
+    // Set cookies from Kratos response BEFORE redirect
+    // This is crucial for OIDC continuity session cookie
+    if (result.cookies && result.cookies.length > 0) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Cookies from Kratos:', result.cookies);
+      }
+      this.setResponseCookies(res, result.cookies);
+    } else {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('No cookies received from Kratos response');
+      }
+    }
+    
+    // Check if response contains redirect_browser_to (OIDC flow)
+    const data = result.data as any;
+    if (data && data.redirect_browser_to) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('OIDC redirect to:', data.redirect_browser_to);
+      }
+      // Return HTTP 302 redirect for OIDC flow
+      // Cookies are already set above, browser will include them in redirect
+      return res.redirect(302, data.redirect_browser_to);
+    }
+    
+    // For non-redirect responses, use passthrough to return JSON
+    return res.json(result.data);
   }
 
   @Get('registration/browser')
@@ -125,10 +151,65 @@ export class AuthController {
     return { success: true };
   }
 
+  @Get('error')
+  @ApiOperation({ summary: 'Get error flow details from Kratos' })
+  async getErrorFlow(
+    @Query('id') errorId: string,
+    @Headers('cookie') cookie?: string,
+  ) {
+    if (!errorId) {
+      throw new BadRequestException('Error ID is required');
+    }
+    return await this.authService.getErrorFlow(errorId, cookie);
+  }
+
   private setResponseCookies(res: Response, cookies?: string[]) {
-    if (!cookies) {
+    if (!cookies || cookies.length === 0) {
       return;
     }
-    cookies.forEach((cookie) => res.append('set-cookie', cookie));
+    
+    // Get Kratos cookie domain from environment or use default
+    const kratosCookieDomain = process.env.KRATOS_COOKIE_DOMAIN || 'auth.foxia.vn';
+    
+    cookies.forEach((cookie) => {
+      // Check if cookie already has domain
+      let cookieToSet = cookie;
+      
+      if (!cookie.includes('domain=')) {
+        // Cookie doesn't have domain, add it
+        // This ensures cookie is set with correct domain even when forwarded through backend proxy
+        const cookieParts = cookie.split(';');
+        const cookieNameValue = cookieParts[0];
+        const cookieAttributes = cookieParts.slice(1);
+        
+        // Add domain attribute
+        cookieToSet = `${cookieNameValue}; domain=${kratosCookieDomain}; ${cookieAttributes.join('; ')}`;
+        
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Added domain to cookie:', cookieToSet.substring(0, 150) + '...');
+        }
+      } else {
+        // Cookie already has domain, but ensure it's correct
+        const domainMatch = cookie.match(/domain=([^;]+)/);
+        if (domainMatch && domainMatch[1].trim() !== kratosCookieDomain) {
+          // Replace domain with correct one
+          cookieToSet = cookie.replace(/domain=[^;]+/, `domain=${kratosCookieDomain}`);
+          
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Replaced domain in cookie:', cookieToSet.substring(0, 150) + '...');
+          }
+        }
+      }
+      
+      // Log cookie for debugging (only in dev)
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Setting cookie:', cookieToSet.substring(0, 200));
+        if (cookieToSet.includes('ory_kratos_oidc_auth_code_session')) {
+          console.log('OIDC continuity session cookie found and will be set!');
+        }
+      }
+      
+      res.append('set-cookie', cookieToSet);
+    });
   }
 }
