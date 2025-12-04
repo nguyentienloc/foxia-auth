@@ -286,6 +286,15 @@ function FlowNode({
     const handleOidcClick = (e: React.MouseEvent) => {
       e.preventDefault();
 
+      // Persist last chosen provider so we can recover flow after redirect
+      try {
+        if (providerId) {
+          window.localStorage.setItem("foxia_last_oidc_provider", providerId);
+        }
+      } catch {
+        // ignore storage errors (e.g. SSR / privacy mode)
+      }
+
       // If we have a direct href URL, redirect immediately
       if (href) {
         console.log("Redirecting to OIDC provider:", href);
