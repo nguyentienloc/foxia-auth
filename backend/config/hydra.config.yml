@@ -1,0 +1,225 @@
+# Hydra Configuration File
+# Sử dụng file này để cấu hình Ory Hydra OAuth2/OIDC Authorization Server
+
+# ============================================================================
+# SERVER CONFIGURATION
+# ============================================================================
+serve:
+  # Public API - Endpoints cho client applications
+  public:
+    port: 4444
+    host: 0.0.0.0
+    # CORS configuration cho public API
+    cors:
+      enabled: true
+      allowed_origins:
+        - https://app.foxia.vn
+        - https://admin.foxia.vn
+        - http://localhost:3000  # Development
+      allowed_methods:
+        - GET
+        - POST
+        - OPTIONS
+      allowed_headers:
+        - Authorization
+        - Content-Type
+      exposed_headers:
+        - Content-Type
+      allow_credentials: true
+      max_age: 3600
+
+  # Admin API - Endpoints để quản lý (chỉ internal)
+  admin:
+    port: 4445
+    host: 0.0.0.0
+    # Admin API thường không cần CORS vì chỉ internal access
+
+# ============================================================================
+# DATABASE CONFIGURATION
+# ============================================================================
+dsn: postgres://user:password@host:port/database?sslmode=disable
+# Hoặc có thể tách thành các biến riêng:
+# dsn: postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?sslmode=disable
+
+# ============================================================================
+# URLS CONFIGURATION
+# ============================================================================
+urls:
+  # Issuer URL - Public URL của Hydra (phải khớp với HYDRA_ISSUER_URL trong Backend)
+  # Đây là URL mà client applications sẽ sử dụng
+  self:
+    issuer: https://oauth.foxia.vn
+
+  # Login URL - URL để redirect user khi cần login
+  # Có thể trỏ về backend hoặc Kratos
+  login: https://auth.foxia.vn/self-service/login/browser
+
+  # Consent URL - URL để xử lý consent flow
+  # Cho Client Credentials Flow, có thể dùng auto consent
+  consent: https://auth.foxia.vn/oauth2/consent
+
+  # Error URL - URL để redirect khi có lỗi
+  error: https://auth.foxia.vn/oauth2/error
+
+  # Logout URL - URL để xử lý logout
+  logout: https://auth.foxia.vn/self-service/logout/browser
+
+# ============================================================================
+# SECRETS CONFIGURATION
+# ============================================================================
+# QUAN TRỌNG: Phải generate secrets an toàn, không commit vào git
+# Generate bằng: openssl rand -hex 32
+secrets:
+  # System secret - Dùng để encrypt data trong database
+  system:
+    - ${HYDRA_SECRETS_SYSTEM}  # Hoặc hardcode: <generate-random-32-char-hex>
+  
+  # Cookie secret - Dùng để sign cookies
+  cookie:
+    - ${HYDRA_SECRETS_COOKIE}  # Hoặc hardcode: <generate-random-32-char-hex>
+
+# ============================================================================
+# STRATEGIES CONFIGURATION
+# ============================================================================
+# LƯU Ý: Trong Helm chart, có thể cần set qua environment variables
+# Xem: backend/docs/hydra-helm-configuration.md
+strategies:
+  # Access token strategy
+  # jwt: Token được sign bằng JWT (stateless, không cần database lookup)
+  # opaque: Token là random string, cần database lookup (stateful)
+  # Environment variable: STRATEGIES_ACCESS_TOKEN=jwt
+  access_token: jwt
+
+  # Scope strategy
+  # exact: Scope phải match chính xác
+  # wildcard: Hỗ trợ wildcard (ví dụ: read:*)
+  # Environment variable: STRATEGIES_SCOPE=exact
+  scope: exact
+
+  # OIDC Subject Identifier Strategy
+  oidc:
+    subject_identifiers:
+      # Supported types:
+      # - public: Sử dụng trực tiếp identity ID (ví dụ: Kratos identity ID)
+      # - pairwise: Hash identity ID với salt để tạo unique subject per client
+      # Environment variable: STRATEGIES_OIDC_SUBJECT_IDENTIFIERS_SUPPORTED_TYPES=public,pairwise
+      supported_types:
+        - public
+        - pairwise
+      
+      # Pairwise salt - Dùng để hash identity ID cho pairwise subject
+      # Generate bằng: openssl rand -hex 32
+      # Environment variable: STRATEGIES_OIDC_SUBJECT_IDENTIFIERS_PAIRWISE_SALT=<salt>
+      pairwise:
+        salt: ${HYDRA_PAIRWISE_SALT}  # Hoặc hardcode: <generate-random-32-char-hex>
+
+# ============================================================================
+# TOKEN CONFIGURATION
+# ============================================================================
+# LƯU Ý: Trong Helm chart, có thể cần set qua environment variables
+# Xem: backend/docs/hydra-helm-configuration.md
+ttl:
+  # Access token expiration time
+  # Format: số + unit (s=seconds, m=minutes, h=hours, d=days)
+  # Environment variable: TTL_ACCESS_TOKEN=1h
+  access_token: 1h
+
+  # Refresh token expiration time (nếu dùng refresh token flow)
+  # Environment variable: TTL_REFRESH_TOKEN=720h
+  refresh_token: 720h  # 30 days
+
+  # ID token expiration time (cho OIDC)
+  # Environment variable: TTL_ID_TOKEN=1h
+  id_token: 1h
+
+  # Authorization code expiration time
+  # Environment variable: TTL_AUTH_CODE=10m
+  auth_code: 10m
+
+# ============================================================================
+# OAUTH2 CONFIGURATION
+# ============================================================================
+oauth2:
+  # Expose OAuth2 endpoints
+  expose_internal_errors: false  # Set true chỉ trong development
+
+  # Hashers - Algorithm để hash client secrets
+  hashers:
+    algorithm: bcrypt
+    bcrypt:
+      cost: 12
+
+# ============================================================================
+# LOGGING CONFIGURATION
+# ============================================================================
+log:
+  level: info  # trace, debug, info, warn, error, fatal, panic
+  format: json  # json hoặc text
+
+# ============================================================================
+# TRACING & METRICS (Optional)
+# ============================================================================
+# tracing:
+#   service_name: hydra
+#   provider: jaeger
+#   jaeger:
+#     local_agent_address: localhost:6831
+
+# telemetry:
+#   service_name: hydra
+#   profiling:
+#     cpu:
+#       enabled: false
+#     memory:
+#       enabled: false
+
+# ============================================================================
+# CONSENT CONFIGURATION
+# ============================================================================
+# Cho Client Credentials Flow, không cần user consent
+# Có thể cấu hình auto consent hoặc custom consent handler
+consent:
+  # Strategy: auto, deny, or custom
+  # auto: Tự động chấp nhận consent (phù hợp cho Client Credentials Flow)
+  # deny: Từ chối tất cả
+  # custom: Sử dụng custom consent handler
+  strategy: auto
+
+# ============================================================================
+# SECURITY CONFIGURATION
+# ============================================================================
+security:
+  # Cookie configuration
+  cookie:
+    same_site_mode: lax  # strict, lax, none
+    same_site_legacy_workaround: false
+
+# ============================================================================
+# FEATURE FLAGS
+# ============================================================================
+feature_flags:
+  # Enable OIDC features
+  oidc: true
+  
+  # Enable PKCE (Proof Key for Code Exchange)
+  pkce: true
+
+# ============================================================================
+# ADVANCED CONFIGURATION
+# ============================================================================
+# allow_termination_from:
+#   - 127.0.0.1/32
+#   - 10.0.0.0/8
+
+# access_token_strategy: jwt
+
+# ============================================================================
+# NOTES
+# ============================================================================
+# 1. Thay thế các giá trị ${VAR_NAME} bằng giá trị thực tế hoặc dùng environment variables
+# 2. Generate secrets bằng: openssl rand -hex 32
+# 3. Đảm bảo ISSUER_URL khớp với HYDRA_ISSUER_URL trong Backend
+# 4. Database phải được migrate trước khi start Hydra: hydra migrate sql
+# 5. Trong production, sử dụng HTTPS cho tất cả URLs
+# 6. Không commit secrets vào git, sử dụng secret management
+

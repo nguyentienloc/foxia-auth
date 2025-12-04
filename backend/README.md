@@ -26,6 +26,22 @@
 
 [Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
 
+## OAuth2/OIDC Endpoints
+
+Backend này cung cấp OAuth2/OIDC authorization server thông qua Ory Hydra:
+
+- `POST /oauth2/token` - Token endpoint (Client Credentials Flow)
+- `GET /oauth2/.well-known/openid-configuration` - OIDC Discovery endpoint
+- `GET /oauth2/jwks` - JSON Web Key Set endpoint
+- `POST /oauth2/clients` - Tạo OAuth2 client (Admin)
+- `GET /oauth2/clients` - List OAuth2 clients (Admin)
+- `GET /oauth2/clients/:id` - Get OAuth2 client (Admin)
+- `DELETE /oauth2/clients/:id` - Xóa OAuth2 client (Admin)
+
+Xem thêm:
+- [Hydra Configuration Guide](docs/hydra-configuration.md)
+- [Client Credentials Flow Guide](docs/hydra-client-credentials-flow.md)
+
 ## Project setup
 
 ```bash

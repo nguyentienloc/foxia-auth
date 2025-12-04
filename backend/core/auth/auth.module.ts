@@ -4,6 +4,7 @@ import { AuthService } from './services/auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { kratosProviders } from './providers/kratos.provider';
 import { KratosSessionService } from './services/kratos-session.service';
+import { hydraProviders } from './providers/hydra.provider';
 
 @Module({})
 export class BaseAuthModule {
@@ -17,8 +18,8 @@ export class BaseAuthModule {
       module: BaseAuthModule,
       global: true,
       imports: [jwtModule],
-      exports: [AuthService, JwtModule, KratosSessionService, ...kratosProviders],
-      providers: [JwtStrategy, AuthService, KratosSessionService, ...kratosProviders],
+      exports: [AuthService, JwtModule, KratosSessionService, ...kratosProviders, ...hydraProviders],
+      providers: [JwtStrategy, AuthService, KratosSessionService, ...kratosProviders, ...hydraProviders],
     };
   }
 }

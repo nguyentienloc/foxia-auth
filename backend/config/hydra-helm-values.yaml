@@ -1,0 +1,263 @@
+# Hydra Helm Chart Values
+# Sử dụng file này để cấu hình Ory Hydra trên Kubernetes
+# Install: helm install hydra ory/hydra -f hydra-helm-values.yaml
+
+# ============================================================================
+# IMAGE CONFIGURATION
+# ============================================================================
+image:
+  repository: oryd/hydra
+  tag: v2.2.0
+  pullPolicy: IfNotPresent
+
+# ============================================================================
+# DEPLOYMENT CONFIGURATION
+# ============================================================================
+deployment:
+  # Number of replicas
+  replicas: 2
+  
+  # Resources
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+
+# ============================================================================
+# SERVICE CONFIGURATION
+# ============================================================================
+service:
+  public:
+    type: ClusterIP  # Hoặc LoadBalancer nếu cần expose trực tiếp
+    port: 4444
+    # annotations:
+    #   service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+  
+  admin:
+    type: ClusterIP  # Chỉ internal, không expose ra ngoài
+    port: 4445
+
+# ============================================================================
+# INGRESS CONFIGURATION
+# ============================================================================
+ingress:
+  public:
+    enabled: true
+    className: "nginx"  # Hoặc ingress class của bạn
+    annotations:
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    hosts:
+      - host: oauth.foxia.vn
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: hydra-public-tls
+        hosts:
+          - oauth.foxia.vn
+  
+  admin:
+    enabled: true
+    className: "nginx"
+    annotations:
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    hosts:
+      - host: admin-oauth.foxia.vn
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: hydra-admin-tls
+        hosts:
+          - admin-oauth.foxia.vn
+
+# ============================================================================
+# HYDRA CONFIGURATION
+# ============================================================================
+hydra:
+  # Cấu hình chính của Hydra
+  config:
+    # URLs Configuration
+    urls:
+      self:
+        issuer: https://oauth.foxia.vn
+      login: https://auth.foxia.vn/self-service/login/browser
+      consent: https://auth.foxia.vn/oauth2/consent
+      error: https://auth.foxia.vn/oauth2/error
+      logout: https://auth.foxia.vn/self-service/logout/browser
+    
+    # Strategies Configuration
+    # Lưu ý: Trong Helm chart, có thể cần set qua environment variables
+    strategies:
+      access_token: jwt
+      scope: exact
+      oidc:
+        subject_identifiers:
+          supported_types:
+            - public
+            - pairwise
+          pairwise:
+            salt: ""  # Sẽ được set qua secret
+    
+    # Token TTL Configuration
+    ttl:
+      access_token: 1h
+      refresh_token: 720h
+      id_token: 1h
+      auth_code: 10m
+    
+    # OAuth2 Configuration
+    oauth2:
+      expose_internal_errors: false
+      hashers:
+        algorithm: bcrypt
+        bcrypt:
+          cost: 12
+    
+    # Logging
+    log:
+      level: info
+      format: json
+    
+    # Consent Strategy
+    consent:
+      strategy: auto  # auto cho Client Credentials Flow
+    
+    # Security
+    security:
+      cookie:
+        same_site_mode: lax
+    
+    # Feature Flags
+    feature_flags:
+      oidc: true
+      pkce: true
+
+# ============================================================================
+# DATABASE CONFIGURATION
+# ============================================================================
+# Option 1: Sử dụng existing database
+database:
+  url: postgres://user:password@postgres-service:5432/hydra?sslmode=disable
+
+# Option 2: Deploy PostgreSQL cùng với Hydra (không khuyến nghị cho production)
+# postgresql:
+#   enabled: false
+
+# ============================================================================
+# SECRETS CONFIGURATION
+# ============================================================================
+# QUAN TRỌNG: Sử dụng Kubernetes Secrets, không hardcode ở đây
+secrets:
+  # Tạo secrets trước:
+  # kubectl create secret generic hydra-secrets \
+  #   --from-literal=system=$(openssl rand -hex 32) \
+  #   --from-literal=cookie=$(openssl rand -hex 32) \
+  #   --from-literal=pairwise=$(openssl rand -hex 32)
+  
+  system:
+    secretName: hydra-secrets
+    secretKey: system
+  
+  cookie:
+    secretName: hydra-secrets
+    secretKey: cookie
+  
+  pairwise:
+    secretName: hydra-secrets
+    secretKey: pairwise
+
+# ============================================================================
+# ENVIRONMENT VARIABLES
+# ============================================================================
+# Nếu Helm chart không hỗ trợ một số config trong hydra.config,
+# có thể set qua environment variables
+extraEnv:
+  - name: DSN
+    valueFrom:
+      secretKeyRef:
+        name: hydra-db-secret
+        key: dsn
+  - name: SECRETS_SYSTEM
+    valueFrom:
+      secretKeyRef:
+        name: hydra-secrets
+        key: system
+  - name: SECRETS_COOKIE
+    valueFrom:
+      secretKeyRef:
+        name: hydra-secrets
+        key: cookie
+  - name: STRATEGIES_ACCESS_TOKEN
+    value: "jwt"
+  - name: STRATEGIES_SCOPE
+    value: "exact"
+  - name: STRATEGIES_OIDC_SUBJECT_IDENTIFIERS_SUPPORTED_TYPES
+    value: "public,pairwise"
+  - name: STRATEGIES_OIDC_SUBJECT_IDENTIFIERS_PAIRWISE_SALT
+    valueFrom:
+      secretKeyRef:
+        name: hydra-secrets
+        key: pairwise
+  - name: TTL_ACCESS_TOKEN
+    value: "1h"
+  - name: TTL_REFRESH_TOKEN
+    value: "720h"
+  - name: TTL_ID_TOKEN
+    value: "1h"
+  - name: TTL_AUTH_CODE
+    value: "10m"
+  - name: ISSUER_URL
+    value: "https://oauth.foxia.vn"
+  - name: URLS_LOGIN
+    value: "https://auth.foxia.vn/self-service/login/browser"
+  - name: URLS_CONSENT
+    value: "https://auth.foxia.vn/oauth2/consent"
+  - name: URLS_ERROR
+    value: "https://auth.foxia.vn/oauth2/error"
+
+# ============================================================================
+# AUTO MIGRATION
+# ============================================================================
+# Tự động migrate database khi deploy
+autoMigrate: true
+
+# ============================================================================
+# PROBES
+# ============================================================================
+probes:
+  liveness:
+    enabled: true
+    path: /health/live
+    initialDelaySeconds: 30
+    periodSeconds: 10
+  readiness:
+    enabled: true
+    path: /health/ready
+    initialDelaySeconds: 5
+    periodSeconds: 5
+
+# ============================================================================
+# NOTES
+# ============================================================================
+# 1. Tạo secrets trước khi deploy:
+#    kubectl create secret generic hydra-secrets \
+#      --from-literal=system=$(openssl rand -hex 32) \
+#      --from-literal=cookie=$(openssl rand -hex 32) \
+#      --from-literal=pairwise=$(openssl rand -hex 32)
+#
+#    kubectl create secret generic hydra-db-secret \
+#      --from-literal=dsn="postgres://user:password@host:port/db?sslmode=disable"
+#
+# 2. Nếu Helm chart không hỗ trợ strategies/ttl trong hydra.config,
+#    sử dụng extraEnv để set environment variables
+#
+# 3. Đảm bảo database đã được migrate: hydra migrate sql
+#
+# 4. Kiểm tra ingress annotations phù hợp với ingress controller của bạn
+

@@ -7,6 +7,7 @@ import { identityConnection } from 'core/constants/database-connection.constant'
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './modules/auth/auth.module';
+import { OAuth2Module } from './modules/oauth2/oauth2.module';
 import { RabbitMQModule } from 'core/rabbitmq';
 import { getRmqHost } from 'core/utils';
 
@@ -110,6 +111,7 @@ import { getRmqHost } from 'core/utils';
       }),
     }),
     AuthModule,
+    OAuth2Module,
   ],
   controllers: [AppController],
   providers: [AppService],

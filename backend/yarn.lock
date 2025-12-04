@@ -1797,6 +1797,13 @@
   resolved "https://registry.yarnpkg.com/@opentelemetry/semantic-conventions/-/semantic-conventions-1.28.0.tgz#337fb2bca0453d0726696e745f50064411f646d6"
   integrity sha512-lp4qAiMTD4sNWW4DbKLBkfiMZ4jbAboJIGOQr5DvciMRI494OapieI9qiODpOt0XBr1LjIDy1xAGAnVs5supTA==
 
+"@ory/hydra-client@^2.2.0":
+  version "2.2.1"
+  resolved "https://registry.yarnpkg.com/@ory/hydra-client/-/hydra-client-2.2.1.tgz#ded6d6f32b1a68e47334446efe1a5b309b3a636d"
+  integrity sha512-Hb6GQuRwPyxt44Cvd3AMFKw/UtvGCHeXO7kIDfv95C/8kErWukCA3WBDWeVfZuIjY+HVPeZFZkBRVC+Ub8UEVg==
+  dependencies:
+    axios "^1.6.1"
+
 "@ory/kratos-client@^25.4.0":
   version "25.4.0"
   resolved "https://registry.yarnpkg.com/@ory/kratos-client/-/kratos-client-25.4.0.tgz#3d2b0c59cd0f199b9654b53285069886d97ae168"
