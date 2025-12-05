@@ -38,6 +38,7 @@ export class KratosSessionService {
         headers: {
           ...(cookie ? { cookie } : {}),
           ...(sessionToken ? { 'x-session-token': sessionToken } : {}),
+          tokenizeAs: 'api_jwt'
         },
         withCredentials: true,
       });
