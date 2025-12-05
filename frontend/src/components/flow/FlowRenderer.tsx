@@ -278,6 +278,9 @@ function FlowNode({
       if (normalizedProvider.includes("github")) {
         return "https://www.svgrepo.com/show/512317/github-142.svg";
       }
+      if (normalizedProvider.includes("facebook")) {
+        return "https://www.svgrepo.com/show/475647/facebook-color.svg";
+      }
       return null;
     };
 
@@ -472,6 +475,10 @@ function FlowNode({
         value={String(node.attributes.value ?? "")}
         className={buttonClass}
         formNoValidate={isSecondary}
+        style={{
+          color: isSecondary ? "var(--foxia-600)" : "white",
+          cursor: "pointer",
+        }}
       >
         {label}
       </button>

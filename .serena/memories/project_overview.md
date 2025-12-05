@@ -1,0 +1,1 @@
+Foxia Auth backend repo is a mono-repo with a NestJS identity-service (under backend/) that fronts Ory Hydra/OIDC plus shared core modules, alongside a React 19 + Vite SPA (frontend/) that demonstrates Kratos login/registration flows against the identity-service. TypeScript is used throughout with pnpm for the backend and yarn for the frontend.

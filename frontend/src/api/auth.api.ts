@@ -84,7 +84,6 @@ class ApiAuth extends Api {
     return response;
   };
 }
-const baseURL =
-  (import.meta as any).env?.VITE_IDENTITY_API_URL ?? "/api";
+const baseURL = import.meta.env.VITE_IDENTITY_API_URL ?? "/api";
 
 export default new ApiAuth(baseURL);

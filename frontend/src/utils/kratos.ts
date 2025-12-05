@@ -93,17 +93,30 @@ export function clearCookies(): void {
 
   // Get all cookies
   const cookies = document.cookie.split(';');
+  const hostname = window.location.hostname;
+  const domains = [
+    undefined, // Current domain
+    hostname,
+    `.${hostname}`,
+    // Try to clear from root domain if we are on a subdomain
+    ...(hostname.split('.').length > 2 
+      ? [`.${hostname.split('.').slice(1).join('.')}`] 
+      : [])
+  ];
+  const paths = ['/', '/kratos', '/api'];
 
   // Clear each cookie
   cookies.forEach((cookie) => {
     const eqPos = cookie.indexOf('=');
     const name = eqPos > -1 ? cookie.substring(0, eqPos).trim() : cookie.trim();
     
-    // Clear cookie by setting it to expire in the past
-    // Try multiple paths and domains to ensure it's cleared
-    document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
-    document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${window.location.hostname}`;
-    document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=.${window.location.hostname}`;
+    // Try multiple combinations of path and domain
+    domains.forEach(domain => {
+      paths.forEach(path => {
+        const domainAttr = domain ? `;domain=${domain}` : '';
+        document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=${path}${domainAttr}`;
+      });
+    });
   });
 }
 

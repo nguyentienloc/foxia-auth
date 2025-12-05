@@ -1,0 +1,1 @@
+General (Darwin): `pwd`, `ls`, `cd path`, `cat file`, `rg pattern path`, `pnpm -v`, `yarn -v`. Backend: `cd backend`, `pnpm install`, `pnpm run start:dev`, `pnpm run start:prod`, `pnpm run test`, `pnpm run test:e2e`, `pnpm run test:cov`, `pnpm run lint`. Frontend: `cd frontend`, `cp env.example .env`, `yarn install`, `yarn dev --host`, `yarn build`, `yarn preview`, `yarn lint`.
